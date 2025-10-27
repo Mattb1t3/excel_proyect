@@ -1,0 +1,195 @@
+<div class="upload-container">
+  <div class="upload-header">
+    <h2>Carga de Archivos XLSX</h2>
+    <p>Selecciona un archivo Excel (.xlsx, .xls) para cargar datos de personas</p>
+  </div>
+
+  <!-- File Upload Area -->
+  <div class="upload-area" *ngIf="!validacionResultado">
+    <div class="file-input-wrapper">
+      <input 
+        type="file" 
+        id="file-input" 
+        accept=".xlsx,.xls"
+        (change)="onFileSelected($event)"
+        [disabled]="isValidating"
+      />
+      <label for="file-input" class="file-input-label">
+        <span class="upload-icon">📁</span>
+        <span *ngIf="!selectedFile">Seleccionar archivo</span>
+        <span *ngIf="selectedFile">{{ fileName }} ({{ getFileSizeFormatted() }})</span>
+      </label>
+    </div>
+
+    <div class="file-requirements">
+      <p><strong>Columnas requeridas:</strong></p>
+      <ul>
+        <li>nombre</li>
+        <li>apellido</li>
+        <li>edad (0-150)</li>
+        <li>correo (formato válido)</li>
+        <li>tipo_sangre (A+, A-, B+, B-, AB+, AB-, O+, O-)</li>
+      </ul>
+    </div>
+
+    <div class="loading-spinner" *ngIf="isValidating">
+      <div class="spinner"></div>
+      <p>Validando archivo...</p>
+    </div>
+  </div>
+
+  <!-- Validation Results -->
+  <div class="validation-results" *ngIf="validacionResultado && !isProcessing">
+    <div class="results-summary">
+      <div class="summary-card">
+        <h3>{{ validacionResultado.total_registros }}</h3>
+        <p>Total Registros</p>
+      </div>
+      <div class="summary-card success">
+        <h3>{{ validacionResultado.registros_validos }}</h3>
+        <p>Válidos</p>
+      </div>
+      <div class="summary-card error" *ngIf="validacionResultado.registros_invalidos > 0">
+        <h3>{{ validacionResultado.registros_invalidos }}</h3>
+        <p>Inválidos</p>
+      </div>
+      <div class="summary-card info">
+        <h3>{{ personasSeleccionadas.size }}</h3>
+        <p>Seleccionados</p>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="data-table-container">
+      <div class="table-actions">
+        <button class="btn btn-secondary" (click)="toggleAll()">
+          {{ personasSeleccionadas.size === validacionResultado.registros_validos ? 'Deseleccionar' : 'Seleccionar' }} Todos
+        </button>
+        <button 
+          class="btn btn-primary" 
+          (click)="processData()"
+          [disabled]="personasSeleccionadas.size === 0"
+        >
+          Cargar {{ personasSeleccionadas.size }} Registros
+        </button>
+        <button class="btn btn-danger" (click)="cancelUpload()">
+          Cancelar
+        </button>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Fila</th>
+              <th>Nombre</th>
+              <th>Apellido</th>
+              <th>Edad</th>
+              <th>Correo</th>
+              <th>Tipo Sangre</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let persona of paginatedData; let i = index" 
+                [class.invalid-row]="!persona.valido"
+                [class.selected-row]="personasSeleccionadas.has((currentPage - 1) * pageSize + i)">
+              <td>
+                <input 
+                  type="checkbox" 
+                  [checked]="personasSeleccionadas.has((currentPage - 1) * pageSize + i)"
+                  (change)="toggleSelection((currentPage - 1) * pageSize + i)"
+                  [disabled]="!persona.valido"
+                />
+              </td>
+              <td>{{ persona.fila }}</td>
+              <td>
+                <input 
+                  type="text" 
+                  [value]="persona.datos?.nombre || ''"
+                  (blur)="updatePersona((currentPage - 1) * pageSize + i, 'nombre', $event.target.value)"
+                  [disabled]="!persona.valido"
+                  class="table-input"
+                />
+              </td>
+              <td>
+                <input 
+                  type="text" 
+                  [value]="persona.datos?.apellido || ''"
+                  (blur)="updatePersona((currentPage - 1) * pageSize + i, 'apellido', $event.target.value)"
+                  [disabled]="!persona.valido"
+                  class="table-input"
+                />
+              </td>
+              <td>
+                <input 
+                  type="number" 
+                  [value]="persona.datos?.edad || 0"
+                  (blur)="updatePersona((currentPage - 1) * pageSize + i, 'edad', +$event.target.value)"
+                  [disabled]="!persona.valido"
+                  class="table-input"
+                  min="0"
+                  max="150"
+                />
+              </td>
+              <td>
+                <input 
+                  type="email" 
+                  [value]="persona.datos?.correo || ''"
+                  (blur)="updatePersona((currentPage - 1) * pageSize + i, 'correo', $event.target.value)"
+                  [disabled]="!persona.valido"
+                  class="table-input"
+                />
+              </td>
+              <td>
+                <select 
+                  [value]="persona.datos?.tipo_sangre || ''"
+                  (change)="updatePersona((currentPage - 1) * pageSize + i, 'tipo_sangre', $event.target.value)"
+                  [disabled]="!persona.valido"
+                  class="table-select"
+                >
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </td>
+              <td>
+                <span class="status-badge" [class.valid]="persona.valido" [class.invalid]="!persona.valido">
+                  {{ persona.valido ? '✓ Válido' : '✗ Inválido' }}
+                </span>
+                <div class="error-messages" *ngIf="!persona.valido && persona.errores">
+                  <small *ngFor="let error of persona.errores">{{ error }}</small>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button (click)="prevPage()" [disabled]="currentPage === 1">Anterior</button>
+        <span>Página {{ currentPage }} de {{ totalPages }}</span>
+        <button (click)="nextPage()" [disabled]="currentPage === totalPages">Siguiente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Processing Progress -->
+  <div class="processing-container" *ngIf="isProcessing">
+    <div class="progress-card">
+      <h3>Procesando Carga...</h3>
+      <div class="progress-bar-container">
+        <div class="progress-bar" [style.width.%]="taskProgress"></div>
+      </div>
+      <p>{{ taskProgress }}% completado</p>
+      <div class="spinner"></div>
+    </div>
+  </div>
+</div>

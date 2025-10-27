@@ -1,0 +1,143 @@
+<div class="personas-container">
+  <div class="personas-header">
+    <h2>Gestión de Personas</h2>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="refreshData()">
+        🔄 Actualizar
+      </button>
+      <button class="btn btn-secondary" (click)="exportData()">
+        📥 Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="statistics-section" *ngIf="estadisticas">
+    <div class="stats-cards">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <h3>{{ estadisticas.total_personas }}</h3>
+        <p>Total Personas</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <h3>{{ estadisticas.edad_promedio }}</h3>
+        <p>Edad Promedio</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🩸</div>
+        <h3>{{ Object.keys(estadisticas.distribucion_tipo_sangre).length }}</h3>
+        <p>Tipos de Sangre</p>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-section">
+      <div class="chart-card">
+        <div class="chart-wrapper">
+          <canvas 
+            baseChart
+            [type]="barChartType"
+            [data]="barChartData"
+            [options]="barChartOptions"
+            *ngIf="barChartData">
+          </canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-wrapper">
+          <canvas 
+            baseChart
+            [type]="ageChartType"
+            [data]="ageChartData"
+            [options]="ageChartOptions"
+            *ngIf="ageChartData">
+          </canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de búsqueda y filtros -->
+  <div class="search-section">
+    <div class="search-box">
+      <input 
+        type="text" 
+        placeholder="Buscar por nombre, apellido, correo o tipo de sangre..."
+        [(ngModel)]="searchTerm"
+        (input)="filterPersonas()"
+        class="search-input"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+  </div>
+
+  <!-- Tabla de personas -->
+  <div class="table-section">
+    <div class="loading-spinner" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Cargando datos...</p>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!isLoading">
+      <table class="personas-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Edad</th>
+            <th>Correo</th>
+            <th>Tipo de Sangre</th>
+            <th>Fecha Registro</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let persona of filteredPersonas">
+            <td>{{ persona.id }}</td>
+            <td>{{ persona.nombre }}</td>
+            <td>{{ persona.apellido }}</td>
+            <td>{{ persona.edad }}</td>
+            <td>{{ persona.correo }}</td>
+            <td>
+              <span class="blood-type-badge">{{ persona.tipo_sangre }}</span>
+            </td>
+            <td>{{ persona.created_at | date:'short' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" title="Editar">
+                  ✏️
+                </button>
+                <button 
+                  class="btn-icon btn-delete" 
+                  (click)="deletePersona(persona)"
+                  title="Eliminar">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="no-results" *ngIf="filteredPersonas.length === 0 && !isLoading">
+        <p>No se encontraron resultados</p>
+      </div>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button (click)="prevPage()" [disabled]="currentPage === 1" class="btn btn-secondary">
+        ← Anterior
+      </button>
+      <span class="page-info">
+        Página {{ currentPage }} de {{ totalPages }} ({{ totalPersonas }} registros)
+      </span>
+      <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="btn btn-secondary">
+        Siguiente →
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,175 @@
+<div class="historial-container">
+  <div class="historial-header">
+    <h2>Historial de Cargas</h2>
+    <button class="btn btn-primary" (click)="refreshData()">
+      🔄 Actualizar
+    </button>
+  </div>
+
+  <div class="historial-content">
+    <div class="loading-spinner" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Cargando historial...</p>
+    </div>
+
+    <div class="historial-list" *ngIf="!isLoading && historial.length > 0">
+      <div class="historial-item" *ngFor="let item of historial" (click)="viewDetails(item)">
+        <div class="item-header">
+          <div class="item-title">
+            <span class="file-icon">📄</span>
+            <h3>{{ item.nombre_archivo }}</h3>
+          </div>
+          <div class="item-status" [class]="getStatusClass(item.estado)">
+            <span class="status-icon">{{ getStatusIcon(item.estado) }}</span>
+            <span>{{ getStatusLabel(item.estado) }}</span>
+          </div>
+        </div>
+
+        <div class="item-stats">
+          <div class="stat">
+            <span class="stat-label">Total:</span>
+            <span class="stat-value">{{ item.total_registros }}</span>
+          </div>
+          <div class="stat success">
+            <span class="stat-label">Exitosos:</span>
+            <span class="stat-value">{{ item.registros_exitosos }}</span>
+          </div>
+          <div class="stat warning" *ngIf="item.registros_duplicados > 0">
+            <span class="stat-label">Duplicados:</span>
+            <span class="stat-value">{{ item.registros_duplicados }}</span>
+          </div>
+          <div class="stat error" *ngIf="item.registros_error > 0">
+            <span class="stat-label">Errores:</span>
+            <span class="stat-value">{{ item.registros_error }}</span>
+          </div>
+        </div>
+
+        <div class="item-footer">
+          <span class="timestamp">📅 {{ formatDate(item.created_at) }}</span>
+          <span class="async-badge" *ngIf="item.fue_asincrono">⚡ Asíncrono</span>
+          <span class="duration" *ngIf="item.completed_at">
+            ⏱ {{ calculateDuration(item.created_at, item.completed_at) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="no-results" *ngIf="!isLoading && historial.length === 0">
+      <p>No hay registros en el historial</p>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button (click)="prevPage()" [disabled]="currentPage === 1" class="btn btn-secondary">
+        ← Anterior
+      </button>
+      <span class="page-info">
+        Página {{ currentPage }} de {{ totalPages }}
+      </span>
+      <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="btn btn-secondary">
+        Siguiente →
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal de detalles -->
+  <div class="modal-overlay" *ngIf="showDetails" (click)="closeDetails()">
+    <div class="modal-content" (click)="$event.stopPropagation()" *ngIf="selectedHistorial">
+      <div class="modal-header">
+        <h2>Detalle de Carga</h2>
+        <button class="close-btn" (click)="closeDetails()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-section">
+          <h3>Información General</h3>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>Archivo:</label>
+              <span>{{ selectedHistorial.nombre_archivo }}</span>
+            </div>
+            <div class="detail-item">
+              <label>Estado:</label>
+              <span class="badge" [class]="getStatusClass(selectedHistorial.estado)">
+                {{ getStatusLabel(selectedHistorial.estado) }}
+              </span>
+            </div>
+            <div class="detail-item">
+              <label>Tipo de Carga:</label>
+              <span>{{ selectedHistorial.fue_asincrono ? 'Asíncrona' : 'Síncrona' }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedHistorial.task_id">
+              <label>Task ID:</label>
+              <span class="code">{{ selectedHistorial.task_id }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h3>Estadísticas</h3>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-number">{{ selectedHistorial.total_registros }}</div>
+              <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-box success">
+              <div class="stat-number">{{ selectedHistorial.registros_exitosos }}</div>
+              <div class="stat-label">Exitosos</div>
+            </div>
+            <div class="stat-box warning">
+              <div class="stat-number">{{ selectedHistorial.registros_duplicados }}</div>
+              <div class="stat-label">Duplicados</div>
+            </div>
+            <div class="stat-box error">
+              <div class="stat-number">{{ selectedHistorial.registros_error }}</div>
+              <div class="stat-label">Errores</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h3>Fechas</h3>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>Inicio:</label>
+              <span>{{ formatDate(selectedHistorial.created_at) }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedHistorial.completed_at">
+              <label>Finalización:</label>
+              <span>{{ formatDate(selectedHistorial.completed_at) }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedHistorial.completed_at">
+              <label>Duración:</label>
+              <span>{{ calculateDuration(selectedHistorial.created_at, selectedHistorial.completed_at) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalles de duplicados -->
+        <div class="detail-section" *ngIf="selectedHistorial.detalles_duplicados?.registros?.length > 0">
+          <h3>Registros Duplicados ({{ selectedHistorial.detalles_duplicados.total }})</h3>
+          <div class="duplicates-list">
+            <div class="duplicate-item" *ngFor="let dup of selectedHistorial.detalles_duplicados.registros">
+              <span class="duplicate-index">Fila {{ dup.indice + 2 }}</span>
+              <span class="duplicate-email">{{ dup.correo }}</span>
+              <span class="duplicate-name">{{ dup.nombre_completo }}</span>
+              <span class="duplicate-message">{{ dup.mensaje }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalles de errores -->
+        <div class="detail-section" *ngIf="selectedHistorial.detalles_errores">
+          <h3>Detalles de Errores</h3>
+          <div class="error-details">
+            <pre>{{ selectedHistorial.detalles_errores | json }}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeDetails()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

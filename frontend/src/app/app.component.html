@@ -1,0 +1,53 @@
+<div class="app-container">
+  <header>
+    <h1>{{ title }}</h1>
+    <p>Sistema de Carga de Archivos XLSX</p>
+  </header>
+
+  <main>
+    <section class="upload-section">
+      <h2>Cargar Archivo</h2>
+      <input type="file" (change)="onFileSelected($event)" accept=".xlsx,.xls">
+    </section>
+
+    <section class="stats-section" *ngIf="estadisticas">
+      <h2>Estadísticas</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>{{ estadisticas.total_personas }}</h3>
+          <p>Total Personas</p>
+        </div>
+        <div class="stat-card">
+          <h3>{{ estadisticas.edad_promedio }}</h3>
+          <p>Edad Promedio</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="personas-section">
+      <h2>Personas ({{ personas.length }})</h2>
+      <div *ngIf="loading">Cargando...</div>
+      <table *ngIf="personas.length > 0">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Edad</th>
+            <th>Correo</th>
+            <th>Tipo Sangre</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let persona of personas">
+            <td>{{ persona.nombre }}</td>
+            <td>{{ persona.apellido }}</td>
+            <td>{{ persona.edad }}</td>
+            <td>{{ persona.correo }}</td>
+            <td>{{ persona.tipo_sangre }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="personas.length === 0 && !loading">No hay personas registradas</p>
+    </section>
+  </main>
+</div>
