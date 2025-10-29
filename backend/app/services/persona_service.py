@@ -61,9 +61,11 @@ class PersonaService:
     
     @staticmethod
     async def get_statistics(db: AsyncSession) -> Dict:
+        # Total de personas
         total_result = await db.execute(select(func.count(Persona.id)))
         total = total_result.scalar()
         
+        # Distribución por tipo de sangre
         tipo_sangre_result = await db.execute(
             select(Persona.tipo_sangre, func.count(Persona.id))
             .group_by(Persona.tipo_sangre)
@@ -72,11 +74,35 @@ class PersonaService:
             str(tipo): count for tipo, count in tipo_sangre_result.all()
         }
         
+        # Edad promedio
         edad_promedio_result = await db.execute(select(func.avg(Persona.edad)))
         edad_promedio = edad_promedio_result.scalar() or 0
+        
+        # Distribución por rangos de edad
+        personas = await PersonaService.get_all(db, limit=10000)
+        edad_rangos = {
+            "0-18": 0,
+            "19-30": 0,
+            "31-45": 0,
+            "46-60": 0,
+            "61+": 0
+        }
+        
+        for persona in personas:
+            if persona.edad <= 18:
+                edad_rangos["0-18"] += 1
+            elif persona.edad <= 30:
+                edad_rangos["19-30"] += 1
+            elif persona.edad <= 45:
+                edad_rangos["31-45"] += 1
+            elif persona.edad <= 60:
+                edad_rangos["46-60"] += 1
+            else:
+                edad_rangos["61+"] += 1
         
         return {
             "total_personas": total,
             "distribucion_tipo_sangre": distribucion_sangre,
-            "edad_promedio": round(edad_promedio, 2)
+            "edad_promedio": round(edad_promedio, 2),
+            "distribucion_edad": edad_rangos
         }

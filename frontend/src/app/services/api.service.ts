@@ -46,6 +46,10 @@ export class ApiService {
     return this.http.post<ApiResponse>(`${this.apiUrl}/upload/validate`, formData);
   }
 
+  uploadAndProcess(formData: FormData): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.apiUrl}/upload/validate-and-process`, formData);
+  }
+
   processData(personas: Persona[]): Observable<ApiResponse> {
     return this.http.post<ApiResponse>(`${this.apiUrl}/upload/process`, personas);
   }

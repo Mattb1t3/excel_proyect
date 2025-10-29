@@ -7,47 +7,93 @@
   <main>
     <section class="upload-section">
       <h2>Cargar Archivo</h2>
-      <input type="file" (change)="onFileSelected($event)" accept=".xlsx,.xls">
+      <div class="upload-wrapper">
+        <input type="file" (change)="onFileSelected($event)" accept=".xlsx,.xls" [disabled]="uploading">
+        <span *ngIf="uploading" class="loading">⏳ Procesando archivo...</span>
+      </div>
+      <div class="info-box">
+        <p><strong>Columnas requeridas:</strong></p>
+        <ul>
+          <li>nombre</li>
+          <li>apellido</li>
+          <li>edad</li>
+          <li>correo</li>
+          <li>tipo_sangre (A+, A-, B+, B-, AB+, AB-, O+, O-)</li>
+        </ul>
+      </div>
     </section>
 
     <section class="stats-section" *ngIf="estadisticas">
-      <h2>Estadísticas</h2>
+      <h2>Estadísticas Generales</h2>
       <div class="stats-grid">
-        <div class="stat-card">
+        <div class="stat-card card-1">
+          <div class="stat-icon">👥</div>
           <h3>{{ estadisticas.total_personas }}</h3>
           <p>Total Personas</p>
         </div>
-        <div class="stat-card">
+        <div class="stat-card card-2">
+          <div class="stat-icon">📊</div>
           <h3>{{ estadisticas.edad_promedio }}</h3>
           <p>Edad Promedio</p>
+        </div>
+        <div class="stat-card card-3">
+          <div class="stat-icon">🩸</div>
+          <h3>{{ Object.keys(estadisticas.distribucion_tipo_sangre || {}).length }}</h3>
+          <p>Tipos de Sangre</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="charts-section" *ngIf="estadisticas && !loading">
+      <h2>Gráficos Estadísticos</h2>
+      <div class="charts-grid">
+        <div class="chart-container">
+          <canvas id="bloodTypeChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="ageChart"></canvas>
         </div>
       </div>
     </section>
 
     <section class="personas-section">
-      <h2>Personas ({{ personas.length }})</h2>
-      <div *ngIf="loading">Cargando...</div>
-      <table *ngIf="personas.length > 0">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Edad</th>
-            <th>Correo</th>
-            <th>Tipo Sangre</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let persona of personas">
-            <td>{{ persona.nombre }}</td>
-            <td>{{ persona.apellido }}</td>
-            <td>{{ persona.edad }}</td>
-            <td>{{ persona.correo }}</td>
-            <td>{{ persona.tipo_sangre }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p *ngIf="personas.length === 0 && !loading">No hay personas registradas</p>
+      <div class="section-header">
+        <h2>Personas Registradas ({{ personas.length }})</h2>
+        <button *ngIf="!loading" (click)="loadData()" class="refresh-btn">🔄 Actualizar</button>
+      </div>
+      
+      <div *ngIf="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Cargando datos...</p>
+      </div>
+
+      <div class="table-wrapper">
+        <table *ngIf="personas.length > 0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Apellido</th>
+              <th>Edad</th>
+              <th>Correo</th>
+              <th>Tipo Sangre</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let persona of personas">
+              <td>{{ persona.id }}</td>
+              <td>{{ persona.nombre }}</td>
+              <td>{{ persona.apellido }}</td>
+              <td>{{ persona.edad }}</td>
+              <td>{{ persona.correo }}</td>
+              <td><span class="blood-badge">{{ persona.tipo_sangre }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p *ngIf="personas.length === 0 && !loading" class="empty-message">
+          📋 No hay personas registradas. Carga un archivo Excel para comenzar.
+        </p>
+      </div>
     </section>
   </main>
 </div>
